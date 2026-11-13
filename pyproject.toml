@@ -1,0 +1,22 @@
+[project]
+name = "comedy-lab"
+version = "0.1.0"
+description = "Multi-agent comedy writers' room: two writers and an originality checker"
+readme = "README.md"
+authors = [
+    { name = "marobinette", email = "robinette.michael.a@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "anthropic>=2.3.0",
+]
+
+[project.scripts]
+agent = "comedy_lab.agent:main"
+joke-board = "comedy_lab.joke_board:main"
+comedy-room = "comedy_lab.comedy_room:main"
+check-checker = "comedy_lab.check_checker:main"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
