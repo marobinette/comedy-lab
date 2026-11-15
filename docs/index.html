@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.5 system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Comedy Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a three-column index-card board (Draft / Pending / Cleared) above a focus panel that shows what happened in the current step. */
+:root {
+  --bg: #eef0f2; --surface: #ffffff; --ink: #1b1f24; --muted: #5d6670; --line: #d5dae0;
+  --a: #2f5fd0; --a-soft: #e3eafb;
+  --b: #c8541f; --b-soft: #fbe8de;
+  --chk: #1f8a5b; --chk-soft: #dcf2e7;
+  --del: #b4232f; --del-soft: #fbe3e5;
+  --display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121417; --surface: #1c2025; --ink: #e8ebee; --muted: #98a1ab; --line: #2e343b;
+  --a: #7fa2f5; --a-soft: #1e2a45; --b: #f0915f; --b-soft: #3d2519;
+  --chk: #4cc28d; --chk-soft: #173528; --del: #f07a84; --del-soft: #3e1d21; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121417; --surface: #1c2025; --ink: #e8ebee; --muted: #98a1ab; --line: #2e343b;
+  --a: #7fa2f5; --a-soft: #1e2a45; --b: #f0915f; --b-soft: #3d2519;
+  --chk: #4cc28d; --chk-soft: #173528; --del: #f07a84; --del-soft: #3e1d21; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55 }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 32px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 24px }
+header h1 { font-family: var(--display); font-size: 28px; line-height: 1.15; margin: 0 0 6px; text-wrap: balance; letter-spacing: -0.01em }
+header p { margin: 0; color: var(--muted); max-width: 64ch }
+.cast { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; font-size: 13px; color: var(--muted) }
+.cast span { display: inline-flex; align-items: center; gap: 6px }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block }
+
+/* Controls */
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px }
+.btn { font: 600 14px var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 14px; cursor: pointer }
+.btn:hover { border-color: var(--muted) }
+.btn:focus-visible, .tick:focus-visible { outline: 2px solid var(--a); outline-offset: 2px }
+.btn:disabled { opacity: .4; cursor: default }
+.btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink) }
+.timeline { display: flex; gap: 4px; flex: 1 1 260px; min-width: 0 }
+.tick { flex: 1; height: 28px; border: 0; background: transparent; padding: 0; cursor: pointer; position: relative }
+.tick::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 4px; border-radius: 2px; background: var(--line) }
+.tick.done::before { background: var(--muted) }
+.tick.on::before { background: var(--ink); height: 6px; top: 11px }
+.tick.r-start { margin-left: 8px }
+.stepnum { font: 500 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap }
+
+/* Board */
+.board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+.col { background: color-mix(in srgb, var(--surface) 45%, var(--bg)); border: 1px solid var(--line); border-radius: 10px; padding: 12px; min-height: 150px; display: flex; flex-direction: column; gap: 8px }
+.col h2 { font: 600 12px var(--display); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 2px; display: flex; justify-content: space-between }
+.col h2 b { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px;
+  transition: box-shadow .25s, border-color .25s; animation: pop .35s ease-out }
+.card.hot { border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink) }
+.card .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.card .topic { font: 600 15px var(--display) }
+.card .id { font: 500 12px var(--mono); color: var(--muted) }
+.trail { display: flex; gap: 4px; flex-wrap: wrap }
+.chip { font: 500 11px var(--mono); padding: 1px 7px; border-radius: 99px }
+.chip.a { background: var(--a-soft); color: var(--a) }
+.chip.b { background: var(--b-soft); color: var(--b) }
+.chip.c { background: var(--chk-soft); color: var(--chk) }
+.empty { color: var(--muted); font-size: 13px; font-style: italic; margin: auto 0; text-align: center }
+@keyframes pop { from { transform: translateY(6px); opacity: .3 } to { transform: none; opacity: 1 } }
+
+/* Focus panel */
+.focus { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: grid; gap: 18px }
+.focus-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px }
+.who { font: 600 12px var(--display); text-transform: uppercase; letter-spacing: .08em; padding: 3px 10px; border-radius: 99px }
+.who.a { background: var(--a-soft); color: var(--a) } .who.b { background: var(--b-soft); color: var(--b) } .who.c { background: var(--chk-soft); color: var(--chk) } .who.n { background: var(--bg); color: var(--muted) }
+.focus-head h3 { font: 600 20px var(--display); margin: 0; text-wrap: balance }
+.round { font: 500 12px var(--mono); color: var(--muted); margin-left: auto }
+.items { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px }
+.item { display: grid; gap: 10px; align-content: start; min-width: 0 }
+.item h4 { margin: 0; font: 600 14px var(--display); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.item h4 .meta { font: 500 12px var(--mono); color: var(--muted) }
+.joke { margin: 0; padding: 12px 14px; border-radius: 8px; background: var(--bg); font-size: 15px; line-height: 1.6 }
+.joke del { color: var(--del); background: var(--del-soft); text-decoration: line-through; text-decoration-thickness: 1px; border-radius: 3px; padding: 0 1px }
+.joke ins { color: var(--ink); background: var(--b-soft); text-decoration: none; border-radius: 3px; padding: 0 1px; box-shadow: inset 0 -2px 0 var(--b) }
+.kept { display: flex; align-items: center; gap: 10px; font: 500 12px var(--mono); color: var(--muted) }
+.bar { flex: 0 0 120px; height: 6px; border-radius: 3px; background: var(--b-soft); overflow: hidden }
+.bar i { display: block; height: 100%; background: var(--muted) }
+.note { margin: 0; padding-left: 12px; border-left: 3px solid var(--line); color: var(--muted); font-size: 14px; max-width: 72ch }
+.note b { color: var(--ink); font-weight: 600 }
+.searches { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px }
+.searches li { font: 400 12.5px/1.5 var(--mono); background: var(--bg); border-radius: 6px; padding: 7px 10px; overflow-wrap: anywhere }
+.searches li::before { content: "search  "; color: var(--muted) }
+.verdict { display: flex; gap: 10px; align-items: flex-start; font-size: 14px }
+.stamp { flex: none; font: 700 11px var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--chk); border: 2px solid var(--chk); border-radius: 4px; padding: 2px 6px; transform: rotate(-3deg) }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted) }
+.legend del, .legend ins { font-size: 12px }
+.legend del { color: var(--del); background: var(--del-soft) }
+.legend ins { text-decoration: none; background: var(--b-soft); box-shadow: inset 0 -2px 0 var(--b); color: var(--ink) }
+.finale { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px }
+.finale .joke { background: var(--bg) }
+footer { color: var(--muted); font-size: 12px }
+footer code { font-family: var(--mono) }
+
+@media (max-width: 680px) {
+  .board { grid-template-columns: 1fr }
+  .col { min-height: 0 }
+  .round { margin-left: 0; width: 100% }
+}
+@media (prefers-reduced-motion: reduce) { .card { animation: none } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Comedy Lab</h1>
+    <p>One run of the comedy room, step by step. A writer proposes a joke, the other writer rewrites it, and a blind checker searches the web before clearing it. Three rounds, five jokes.</p>
+    <div class="cast">
+      <span><i class="dot" style="background:var(--a)"></i>writer_a, Seinfeld style</span>
+      <span><i class="dot" style="background:var(--b)"></i>writer_b, Galifianakis style</span>
+      <span><i class="dot" style="background:var(--chk)"></i>checker, web search</span>
+    </div>
+  </header>
+
+  <div class="controls">
+    <button class="btn" id="prev" aria-label="Previous step">← Back</button>
+    <button class="btn primary" id="next" aria-label="Next step">Next →</button>
+    <button class="btn" id="play" aria-label="Play">Play</button>
+    <div class="timeline" id="timeline" role="group" aria-label="Steps"></div>
+    <span class="stepnum" id="stepnum"></span>
+  </div>
+
+  <section class="board" aria-label="Joke board">
+    <div class="col"><h2>Draft <b id="n-draft"></b></h2><div id="c-draft"></div></div>
+    <div class="col"><h2>Pending review <b id="n-pending"></b></h2><div id="c-pending"></div></div>
+    <div class="col"><h2>Cleared <b id="n-cleared"></b></h2><div id="c-cleared"></div></div>
+  </section>
+
+  <section class="focus" id="focus" aria-live="polite"></section>
+
+  <footer>Source: run <code>2026-11-13_110036</code>. Sonnet writers and checker, co-editing on, writer_a always first. 10 web searches, 0 flags.</footer>
+</div>
+
+<script>
+const JOKES = {
+  1: { topic: "Junk drawer",
+    draft: `Why do we call it a "junk drawer"? It's the only drawer in the house where I'm sure to find what I need. Not the thing I'm looking for, no. But a dead battery, a takeout menu from a place that closed in 2011, and one key. One key! To what? Nobody knows. And that's why I can never throw it out. It might be the key to the one thing I'll someday be locked out of.`,
+    final: `I have one key in my junk drawer that doesn't open anything in my house. I've tried every lock, twice. Last month I finally asked my neighbor if it was his. He said no, and then he looked at me for a long time, and now I think we both know something. I still have the key. We don't wave anymore.`,
+    searches: [`joke key in junk drawer doesn't open anything, asked neighbor if it was his`, `"we don't wave anymore" neighbor key joke`],
+    verdict: `Found only generic mystery-key and junk-drawer pages. None had the neighbor who looks at you too long and the "now we both know something" twist.` },
+  2: { topic: "Grocery run",
+    draft: `Nobody ever says "I'm going to the grocery store for just one thing." Because you know what happens. You walk in for milk, and you walk out with a rotisserie chicken, a candle, and a deep sense that you've been planning your week wrong. The milk? Forgot the milk. The milk was the whole reason I left the house!`,
+    final: `I went to the grocery store for milk and came out with a rotisserie chicken, a candle, and a stranger's phone number written on my hand. I don't remember how that happened. I don't remember the milk either. The chicken and I sat in the car for an hour, and I told it everything. It was already cooked, so it had nothing to add.`,
+    searches: [`joke went to store for milk came out with rotisserie chicken, candle, phone number on my hand`, `told the rotisserie chicken everything in the car, "already cooked" nothing to add joke`],
+    verdict: `Closest results were generic "went in for milk, left with more" lines. None had the chicken-confidant bit or the "already cooked" punchline.` },
+  3: { topic: "Waiting room",
+    draft: `The doctor's waiting room is the only place where they hand you a clipboard and ask for your whole medical history, and then the doctor walks in and asks, "So, what brings you here?" I just wrote it down! It's on the clipboard! I used the little pen on a string! Who was that for? That pen's been chained up since 1996, and honestly, it's the only one in the building who's been committed.`,
+    final: `At the doctor's office they gave me a clipboard with a pen on a string. Under "Reason for visit," I wrote "personal." The nurse read it out loud in the waiting room. Then she said, "We'll need a little more than that," and I said, "That's all the string would allow." Nobody laughed. A man across from me nodded and returned his pen to its string like he'd been there before.`,
+    searches: [`clipboard pen on a string "reason for visit" "personal" joke string would allow`, `doctor waiting room pen on a string comedian bit "reason for visit" nurse read aloud`],
+    verdict: `Found only generic pen-on-a-string and clipboard puns. None used the "personal" answer with the "all the string would allow" punchline.` },
+  4: { topic: "Elevator",
+    draft: `Elevator small talk has exactly one move: "Hot out there." And the other person says, "Sure is." That's it. That's the whole conversation, and we both agree to never speak of it again. Then we stand there for eleven floors, staring at the numbers like they're about to do something. They're not. It's a 4. It's always going to be a 4 until it's a 5.`,
+    final: `A man in an elevator said, "Hot out there." I said, "Sure is," and that should have been the end. But I panicked and added, "I'm not wearing underwear." I don't know why. It's not even true. We rode eleven floors in silence, and he got off on 4 and said, "Take care of yourself," in a way that sounded like instructions.`,
+    searches: [`elevator "hot out there" panicked "I'm not wearing underwear" joke`, `awkward elevator small talk blurted out underwear "take care of yourself" stand-up`],
+    verdict: `Found elevator-awkwardness lists and one novel excerpt with an underwear blurt. None matched the setup, the blurt and the "Take care of yourself" ending together.` },
+  5: { topic: "Group chat",
+    draft: `I've been in my family group chat for six years, and last week I typed, "Who is this?" I don't know why. My mother replied, "It's your mother." Then my cousin wrote, "It's me, Danny." Then my uncle, who has never said anything in that chat, wrote, "We've been wondering the same about you." Now I just react to messages with a thumbs up. It's the only way I can prove I'm still alive.`,
+    final: `I've been in my family group chat for six years. Last week I typed, "Who is this?" and sent it before I could think. My mother wrote, "It's your mother." My cousin wrote, "It's Danny." Then my uncle, who has never said a word in that chat, wrote, "We assumed you were a bot." Nobody disagreed. Now I send a photo of a sandwich every Sunday at noon. I don't eat sandwiches. I just want them to know the bot is doing fine.`,
+    searches: [`family group chat "who is this" uncle "we assumed you were a bot" joke`, `joke family group chat everyone thought I was a bot sending sandwich photo every Sunday`],
+    verdict: `Results were general family group-chat humor and sandwich puns. Nothing had the "we assumed you were a bot" turn or the sandwich-photo ending.` },
+};
+
+// Each step: who acts, which jokes, and what the board looks like afterward.
+const STEPS = [
+  { who: "n", title: "An empty board", round: "Before round 1", jokes: [],
+    note: `Goal: 5 cleared jokes in at most 6 rounds. A new joke starts as a <b>draft</b>. It only reaches the checker after the <b>other</b> writer has revised it.` },
+  { who: "a", kind: "propose", round: "Round 1", jokes: [1, 2], title: "writer_a proposes two jokes",
+    note: `<b>Note to writer_b:</b> Please punch them up and send them to review. Make the tags sharper and add a more surprising turn to each.` },
+  { who: "b", kind: "edit", round: "Round 1", jokes: [1, 2], title: "writer_b rewrites both",
+    note: `<b>Note to writer_a:</b> Next, add 1–2 fresh drafts on other awkward premises, like waiting rooms, elevator small talk, or a group-chat blunder.` },
+  { who: "c", kind: "check", round: "Round 1", jokes: [1, 2], title: "The checker searches, then clears both",
+    note: `The checker never sees who wrote a joke, and never sees drafts. It flags only if an existing joke has the same premise <b>and</b> the same punchline.` },
+  { who: "a", kind: "propose", round: "Round 2", jokes: [3, 4], title: "writer_a proposes two more",
+    note: `<b>Note to writer_b:</b> In #3, the pen on a string could use a sharper tag. In #4, try a better ending than the floor numbers. I'll try a group-chat blunder next turn.` },
+  { who: "b", kind: "edit", round: "Round 2", jokes: [3, 4], title: "writer_b rewrites both",
+    note: `<b>Note to writer_a:</b> Go ahead with the group-chat blunder. A deadpan angle could be replying "Who is this?" to a group chat you've been in for years.` },
+  { who: "c", kind: "check", round: "Round 2", jokes: [3, 4], title: "The checker clears both",
+    note: `Cleared means no close match was found, not that the joke is proven original.` },
+  { who: "a", kind: "propose", round: "Round 3", jokes: [5], title: "writer_a builds the joke writer_b pitched",
+    note: `<b>Note to writer_b:</b> The uncle's line is the center of it. Try making it more deadpan, and consider changing the thumbs-up ending to something less expected.` },
+  { who: "b", kind: "edit", round: "Round 3", jokes: [5], title: "writer_b flattens the uncle and swaps the ending",
+    note: `<b>Note to writer_a:</b> We shouldn't add more drafts unless joke 5 gets flagged. If it does, I'll rework it.` },
+  { who: "c", kind: "check", round: "Round 3", jokes: [5], title: "The checker clears the fifth joke",
+    note: `5 of 5 cleared after round 3, using 10 web searches and no flags.` },
+  { who: "n", kind: "final", round: "Done", jokes: [1, 2, 3, 4, 5], title: "The final set",
+    note: `Every cleared joke has both writers in its history. In this run, writer_b edited second every time and rebuilt every joke, so writer_b's version is what shipped.` },
+];
+
+// Board state after each step: id -> {status, trail}
+function boardAt(i) {
+  const b = {};
+  for (let s = 1; s <= Math.min(i, 9); s++) {
+    const st = STEPS[s];
+    for (const id of st.jokes) {
+      if (st.kind === "propose") b[id] = { status: "draft", trail: ["a"] };
+      if (st.kind === "edit") b[id] = { status: "pending", trail: ["a", "b"] };
+      if (st.kind === "check") b[id] = { status: "cleared", trail: ["a", "b", "c"] };
+    }
+  }
+  return b;
+}
+
+const words = s => s.split(/\s+/).filter(Boolean);
+function lcs(a, b) {
+  const n = a.length, m = b.length, norm = w => w.toLowerCase().replace(/[^\w']/g, "");
+  const A = a.map(norm), B = b.map(norm);
+  const dp = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const ops = []; let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (A[i] === B[j]) { ops.push(["=", b[j]]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) ops.push(["-", a[i++]]);
+    else ops.push(["+", b[j++]]);
+  }
+  while (i < n) ops.push(["-", a[i++]]);
+  while (j < m) ops.push(["+", b[j++]]);
+  return { ops, kept: dp[0][0] };
+}
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+function diffHTML(a, b) {
+  const { ops } = lcs(words(a), words(b));
+  let out = "", cur = null, buf = [];
+  const flush = () => { if (!buf.length) return; const t = esc(buf.join(" "));
+    out += cur === "-" ? `<del>${t}</del> ` : cur === "+" ? `<ins>${t}</ins> ` : t + " "; buf = []; };
+  for (const [op, w] of ops) { if (op !== cur) { flush(); cur = op; } buf.push(w); }
+  flush(); return out;
+}
+function keptShare(a, b) { const fw = words(b); return lcs(words(a), fw).kept / fw.length; }
+
+const chipLabel = { a: "writer_a", b: "writer_b", c: "cleared" };
+let step = 0, timer = null;
+const $ = id => document.getElementById(id);
+
+function renderBoard() {
+  const b = boardAt(step), active = new Set(STEPS[step].kind === "final" ? [] : STEPS[step].jokes);
+  for (const status of ["draft", "pending", "cleared"]) {
+    const ids = Object.keys(b).filter(id => b[id].status === status);
+    $("n-" + status).textContent = ids.length;
+    $("c-" + status).innerHTML = ids.length ? ids.map(id => `
+      <div class="card${active.has(+id) ? " hot" : ""}" style="margin-bottom:8px">
+        <div class="top"><span class="topic">${JOKES[id].topic}</span><span class="id">#${id}</span></div>
+        <div class="trail">${b[id].trail.map(t => `<span class="chip ${t}">${chipLabel[t]}</span>`).join("")}</div>
+      </div>`).join("") : `<p class="empty">Nothing here yet</p>`;
+  }
+}
+
+function renderFocus() {
+  const s = STEPS[step];
+  let body = "";
+  if (s.kind === "propose") body = s.jokes.map(id => `
+    <div class="item"><h4>#${id} ${JOKES[id].topic} <span class="meta">draft · ${words(JOKES[id].draft).length} words</span></h4>
+    <p class="joke">${esc(JOKES[id].draft)}</p></div>`).join("");
+  if (s.kind === "edit") body = s.jokes.map(id => {
+    const k = keptShare(JOKES[id].draft, JOKES[id].final);
+    return `<div class="item"><h4>#${id} ${JOKES[id].topic}</h4>
+      <div class="kept"><span class="bar"><i style="width:${(k * 100).toFixed(0)}%"></i></span>${Math.round(k * 100)}% of the final words came from the draft</div>
+      <p class="joke">${diffHTML(JOKES[id].draft, JOKES[id].final)}</p></div>`;
+  }).join("") + `<div class="legend"><span><del>struck</del> cut from the draft</span><span><ins>highlighted</ins> added by writer_b</span></div>`;
+  if (s.kind === "check") body = s.jokes.map(id => `
+    <div class="item"><h4>#${id} ${JOKES[id].topic} <span class="meta">${JOKES[id].searches.length} searches</span></h4>
+    <ul class="searches">${JOKES[id].searches.map(q => `<li>${esc(q)}</li>`).join("")}</ul>
+    <div class="verdict"><span>${JOKES[id].verdict}</span></div></div>`).join("");
+  if (s.kind === "final") body = `<div class="finale">${s.jokes.map(id => `
+    <div class="item"><h4>#${id} ${JOKES[id].topic}</h4><p class="joke">${esc(JOKES[id].final)}</p></div>`).join("")}</div>`;
+  $("focus").innerHTML = `
+    <div class="focus-head"><span class="who ${s.who}">${{ a: "writer_a", b: "writer_b", c: "checker", n: "room" }[s.who]}</span>
+      <h3>${s.title}</h3><span class="round">${s.round}</span></div>
+    ${body ? `<div class="items">${body}</div>` : ""}
+    <p class="note">${s.note}</p>`;
+}
+
+function renderControls() {
+  $("prev").disabled = step === 0;
+  $("next").disabled = step === STEPS.length - 1;
+  $("stepnum").textContent = `${step + 1} / ${STEPS.length}`;
+  [...$("timeline").children].forEach((t, i) => { t.classList.toggle("on", i === step); t.classList.toggle("done", i < step); });
+  $("play").textContent = timer ? "Pause" : "Play";
+}
+function go(i) { step = Math.max(0, Math.min(STEPS.length - 1, i)); renderBoard(); renderFocus(); renderControls(); }
+
+STEPS.forEach((s, i) => {
+  const t = document.createElement("button");
+  t.className = "tick" + ([1, 4, 7, 10].includes(i) ? " r-start" : "");
+  t.setAttribute("aria-label", `Step ${i + 1}: ${s.title}`);
+  t.title = `${s.round}: ${s.title}`;
+  t.onclick = () => { stop(); go(i); };
+  $("timeline").appendChild(t);
+});
+function stop() { clearInterval(timer); timer = null; renderControls(); }
+$("prev").onclick = () => { stop(); go(step - 1); };
+$("next").onclick = () => { stop(); go(step + 1); };
+$("play").onclick = () => {
+  if (timer) return stop();
+  if (step === STEPS.length - 1) go(0);
+  timer = setInterval(() => { if (step >= STEPS.length - 1) stop(); else go(step + 1); }, 4500);
+  renderControls();
+};
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight") { stop(); go(step + 1); }
+  if (e.key === "ArrowLeft") { stop(); go(step - 1); }
+});
+go(2);
+</script>
+</body>
+</html>

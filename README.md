@@ -4,6 +4,10 @@ Three AI agents work together to produce five original jokes. Two comedy writers
 
 It's a small project meant to explore multi-agent collaboration in the context of a comedy writing room: the rules of the room live in code rather than in the prompts.
 
+[![Comedy Lab: a step-through replay of one run](docs/screenshot.png)](https://marobinette.github.io/comedy-lab/)
+
+**[Step through a full run →](https://marobinette.github.io/comedy-lab/)** Watch each joke get drafted, rewritten by the other writer, and checked against the web.
+
 ## Setup
 
 | Agent | Role | Tools |
